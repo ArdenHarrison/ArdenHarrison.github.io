@@ -232,8 +232,8 @@ class Shuttle extends RigidBody {
     rightThruster = false
     angle = 0 // In PI Radians
     forwardThrust = 100
-    rotationalThrust = 0.8
-    turningForwardThrust = 10
+    rotationalThrust = 1.2
+    turningForwardThrust = 20
     constructor(position) {
         super(position, 40, new Vector(0,0))
     }
@@ -304,18 +304,32 @@ function startup() {
     canvas = document.getElementById("asteroidsCanvas")
     context2D = canvas.getContext("2d")
 
+
+    document.addEventListener("keydown", function(event){
+        if(event.key == "ArrowLeft") {
+            player.leftThruster = true
+        }
+        if(event.key == "ArrowRight") {
+            player.rightThruster = true
+        }
+    })
+    document.addEventListener("keyup", function(event){
+        if(event.key == "ArrowLeft") {
+            player.leftThruster = false
+        }
+        if(event.key == "ArrowRight") {
+            player.rightThruster = false
+        }
+    })
+
+    canvas.addEventListener("touchstart", touchHandler)
+    canvas.addEventListener("touchmove", touchHandler)
+    canvas.addEventListener("touchend", touchHandler)
+    canvas.addEventListener("touchcancel", touchHandler)
+
+
     player = new Shuttle(new Vector(360, 340))
     actors.push(player)
-
-    //var i = 0
-    //var n = 10
-    //while(i < n) {
-    //    actors.push(new Asteroid(new Vector(i*10,i*40), 10+i*2, new Vector(i*2-i,i*2+i), "#FFDDDD"))
-    //    i += 1
-    //}
-
-    //actors.push(new Asteroid(new Vector(360,600), 80, new Vector(0,0), "#FF4444"))
-    //actors.push(new Asteroid(new Vector(310,600), 40, new Vector(6,0), "#4444FF"))
 
     lastTick = Date.now()
     window.setInterval(process, tickrate)
@@ -323,22 +337,21 @@ function startup() {
 }
 
 
-document.addEventListener("keydown", function(event){
-    if(event.key == "ArrowLeft") {
-        player.leftThruster = true
+function touchHandler(event) {
+    var touches = [...event.targetTouches]
+    player.leftThruster = false
+    player.rightThruster = false
+
+    var i = 0
+    var n = touches.length
+    while(i < n) {
+        if(touches[i].pageX <= canvas.offsetLeft + canvas.offsetWidth/2) {
+            player.leftThruster = true
+        } else {
+            player.rightThruster = true
+        }
     }
-    if(event.key == "ArrowRight") {
-        player.rightThruster = true
-    }
-})
-document.addEventListener("keyup", function(event){
-    if(event.key == "ArrowLeft") {
-        player.leftThruster = false
-    }
-    if(event.key == "ArrowRight") {
-        player.rightThruster = false
-    }
-})
+}
 
 
 function process() {
