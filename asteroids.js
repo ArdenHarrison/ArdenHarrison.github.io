@@ -350,6 +350,7 @@ function touchHandler(event) {
         } else {
             player.rightThruster = true
         }
+        i += 1
     }
 }
 
