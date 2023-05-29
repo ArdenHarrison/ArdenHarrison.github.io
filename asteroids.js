@@ -284,10 +284,10 @@ const tickrate = 30 // MILLISECONDS
 var lastTick
 
 const worldBoundary = {
-    x: 0,
-    y: 0,
-    w: 720,
-    h: 1280
+    x: 40,
+    y: 80,
+    w: 1000,
+    h: 1000
 }
 
 const fullscreenButton = {
@@ -335,9 +335,9 @@ function startup() {
 
     canvas.addEventListener("click", clickHandler)
 
-    var a = canvas.msRequestFullscreen
+    console.log(canvas.offsetWidth + ", " + canvas.offsetHeight + ": " + canvas.offsetHeight/canvas.offsetWidth)
+    
 
-    toggleFullscreen()
 
     player = new Shuttle(new Vector(360, 340))
     actors.push(player)
@@ -349,7 +349,35 @@ function startup() {
 
 
 function clickHandler(event) {
-    console.log(event.offsetX)
+
+    var offsetLeft = canvas.offsetLeft
+    var offsetTop = canvas.offsetTop
+    var offsetWidth = canvas.offsetWidth
+    var offsetHeight = canvas.offsetHeight
+
+    if(fullscreen) {
+        var canvasAspectRatio = canvas.height/canvas.width
+        var screenAspectRatio = canvas.offsetHeight/canvas.offsetWidth
+
+        if(canvasAspectRatio > screenAspectRatio) { // Screen is wider than the canvas
+            var displayOffsetWidth = canvas.offsetHeight/canvasAspectRatio
+            offsetLeft = (canvas.offsetWidth - displayOffsetWidth)/2
+            offsetWidth = displayOffsetWidth
+        } else if(canvasAspectRatio < screenAspectRatio) { // The canvas is wider
+            var displayOffsetHeight = canvas.offsetWidth * canvasAspectRatio
+            offsetTop = (canvas.offsetHeight - displayOffsetHeight)/2
+            offsetHeight = displayOffsetHeight
+        }
+    }
+
+    var posX = ((event.pageX - offsetLeft)/offsetWidth) * canvas.width
+    var posY = ((event.pageY - offsetTop)/offsetHeight) * canvas.height
+
+    console.log(posX + ", " + posY)
+    
+    if(posX >= fullscreenButton.x && posX <= fullscreenButton.x + fullscreenButton.w && posY >= fullscreenButton.y && posY <= fullscreenButton.y + fullscreenButton.h) {
+        toggleFullscreen()
+    }
 }
 
 function touchHandler(event) {
@@ -361,8 +389,8 @@ function touchHandler(event) {
     var n = touches.length
     while(i < n) {
         // Is the user touching the fullscreen button
-        var posX = ((touches[i].pageX - canvas.offsetLeft)/canvas.offsetWidth) * worldBoundary.w
-        var posY = ((touches[i].pageY - canvas.offsetTop)/canvas.offsetHeight) * worldBoundary.h
+        var posX = ((touches[i].pageX - canvas.offsetLeft)/canvas.offsetWidth) * canvas.width
+        var posY = ((touches[i].pageY - canvas.offsetTop)/canvas.offsetHeight) * canvas.height
         if(posX >= fullscreenButton.x && posX <= fullscreenButton.x + fullscreenButton.w && posY >= fullscreenButton.y && posY <= fullscreenButton.y + fullscreenButton.h) {
             toggleFullscreen()
         } else {
@@ -380,13 +408,14 @@ var fullscreen = false
 
 function toggleFullscreen() {
     if(fullscreen) {
-        if(canvas.exitFullscreen) {
-            canvas.exitFullscreen()
-        } else if(canvas.webkitExitFullscreen) {
-            canvas.webkitExitFullscreen()
-        } else if(canvas.msExitFullscreen) {
-            canvas.msExitFullscreen()
+        if(document.exitFullscreen) {
+            document.exitFullscreen()
+        } else if(document.webkitExitFullscreen) {
+            document.webkitExitFullscreen()
+        } else if(document.msExitFullscreen) {
+            document.msExitFullscreen()
         }
+        fullscreen = false
     } else {
         if(canvas.requestFullscreen) {
             canvas.requestFullscreen()
@@ -395,6 +424,7 @@ function toggleFullscreen() {
         } else if(canvas.msRequestFullscreen) {
             canvas.msRequestFullscreen()
         }
+        fullscreen = true
     }
 }
 
@@ -498,8 +528,12 @@ function physicsProcess(delta) {
 function draw(delta) {
 
     // Draw background
-    context2D.fillStyle = "#000000"
+    context2D.fillStyle = "#444444"
     context2D.fillRect(0,0, canvas.width,canvas.height)
+
+    //Draw world area
+    context2D.fillStyle = "#000000"
+    context2D.fillRect(worldBoundary.x,worldBoundary.y, worldBoundary.w,worldBoundary.h)
 
     // Draw actors
     var i = 0
