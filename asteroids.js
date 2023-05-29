@@ -290,6 +290,12 @@ const worldBoundary = {
     h: 1280
 }
 
+const fullscreenButton = {
+    x: 0,
+    y: 0,
+    w: 100,
+    h: 100
+}
 
 var canvas
 var context2D
@@ -327,6 +333,11 @@ function startup() {
     canvas.addEventListener("touchend", touchHandler)
     canvas.addEventListener("touchcancel", touchHandler)
 
+    canvas.addEventListener("click", clickHandler)
+
+    var a = canvas.msRequestFullscreen
+
+    toggleFullscreen()
 
     player = new Shuttle(new Vector(360, 340))
     actors.push(player)
@@ -337,6 +348,10 @@ function startup() {
 }
 
 
+function clickHandler(event) {
+    console.log(event.offsetX)
+}
+
 function touchHandler(event) {
     var touches = [...event.targetTouches]
     player.leftThruster = false
@@ -345,12 +360,41 @@ function touchHandler(event) {
     var i = 0
     var n = touches.length
     while(i < n) {
-        if(touches[i].pageX <= canvas.offsetLeft + canvas.offsetWidth/2) {
-            player.leftThruster = true
+        // Is the user touching the fullscreen button
+        var posX = ((touches[i].pageX - canvas.offsetLeft)/canvas.offsetWidth) * worldBoundary.w
+        var posY = ((touches[i].pageY - canvas.offsetTop)/canvas.offsetHeight) * worldBoundary.h
+        if(posX >= fullscreenButton.x && posX <= fullscreenButton.x + fullscreenButton.w && posY >= fullscreenButton.y && posY <= fullscreenButton.y + fullscreenButton.h) {
+            toggleFullscreen()
         } else {
-            player.rightThruster = true
+            if(touches[i].pageX <= canvas.offsetLeft + canvas.offsetWidth/2) {
+                player.leftThruster = true
+            } else {
+                player.rightThruster = true
+            }
         }
         i += 1
+    }
+}
+
+var fullscreen = false
+
+function toggleFullscreen() {
+    if(fullscreen) {
+        if(canvas.exitFullscreen) {
+            canvas.exitFullscreen()
+        } else if(canvas.webkitExitFullscreen) {
+            canvas.webkitExitFullscreen()
+        } else if(canvas.msExitFullscreen) {
+            canvas.msExitFullscreen()
+        }
+    } else {
+        if(canvas.requestFullscreen) {
+            canvas.requestFullscreen()
+        } else if(canvas.webkitRequestFullscreen) {
+            canvas.webkitRequestFullscreen()
+        } else if(canvas.msRequestFullscreen) {
+            canvas.msRequestFullscreen()
+        }
     }
 }
 
@@ -383,7 +427,7 @@ function process() {
 
 
 function spawnAsteroid() {
-    var targetAsteroidCount = 10
+    var targetAsteroidCount = 20
     if(actors.length-1 < targetAsteroidCount) {
         var targetRadius = Math.floor(Math.random() * 31) + 30
         var pos = new Vector(Math.random() * worldBoundary.w + worldBoundary.x, Math.random() * worldBoundary.h + worldBoundary.y)
