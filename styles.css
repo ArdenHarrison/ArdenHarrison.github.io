@@ -1,8 +1,21 @@
+body{
+    background-color: #e0e1e5;
+    color: #020b0a;
+}
 canvas{
-    max-width: 540;
-    max-height: 960;
+    display: block;
+    margin: auto;
+    max-width: 360;
+    max-height: 640;
 }
 h1{
+    text-align: center;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+}
+p{
+    text-align: center;
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;

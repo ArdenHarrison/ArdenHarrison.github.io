@@ -50,9 +50,10 @@ class Vector {
     }
     getAngle() {
         var a = this.normalized()
+        
         var b = a.dotProduct(new Vector(1,0))
         var c = Math.acos(b)
-        return c//Math.acos(this.normalized().dotProduct(new Vector(1,0)))
+        return Math.atan2(this.y, this.x)
     }
     scalarProjection(value) {
         return this.dotProduct(value)*this.magnitude()
@@ -194,9 +195,28 @@ class Asteroid extends RigidBody {
     draw(delta, pos) {
         context2D.lineWidth = 2
         context2D.strokeStyle = this.colour
+        context2D.fillStyle = this.colour
+
+        // Outline
         context2D.beginPath()
         context2D.arc(pos.x, pos.y, this.radius, 0,2*Math.PI)
         context2D.stroke()
+
+        // Show velocity
+        context2D.beginPath()
+        context2D.arc(pos.x, pos.y, this.radius, -0.001*this.velocity.magnitude() + this.velocity.getAngle(), 0.001*this.velocity.magnitude() + this.velocity.getAngle())
+        context2D.lineTo(pos.x, pos.y)
+        context2D.fill()
+
+        // Show HP
+        var i = 0
+        var n = this.hitPoints-1
+        while(i < n) {
+            context2D.beginPath()
+            context2D.arc(pos.x, pos.y, Math.max(this.radius - i*10 - 5, 0), 0, 2*Math.PI)
+            context2D.stroke()
+            i += 1
+        }
     }
     grow(delta) {
         this.radius += this.growthRate * this.targetRadius * delta
@@ -217,7 +237,7 @@ class Asteroid extends RigidBody {
                 var relativeVelocity = relativePos.normalized().multiply(30)
                 var velocity = this.velocity.add(relativeVelocity)
                 
-                actors.push(new Asteroid(pos, childRadius, velocity, "#FF4444", false))
+                actors.push(new Asteroid(pos, childRadius, velocity, this.colour, false))
 
                 i += 1
             }
@@ -227,11 +247,11 @@ class Asteroid extends RigidBody {
 }
 
 class Shuttle extends RigidBody {
-    colour = "#5555FF"
+    colour = "#ffb51b"
     leftThruster = false
     rightThruster = false
     angle = 0 // In PI Radians
-    forwardThrust = 100
+    forwardThrust = 180
     rotationalThrust = 1.2
     turningForwardThrust = 20
     constructor(position) {
@@ -247,14 +267,59 @@ class Shuttle extends RigidBody {
         context2D.lineWidth = 2
         context2D.strokeStyle = this.colour
         context2D.fillStyle = this.colour
+
+        // Outline
         context2D.beginPath()
         context2D.arc(pos.x, pos.y, this.radius, 0,2*Math.PI)
         context2D.stroke()
 
+        // Show angle (with a triangle)
+        context2D.fillStyle = "#000000"
+
         context2D.beginPath()
-        context2D.arc(pos.x, pos.y, this.radius, -0.1 + Math.PI*this.angle, 0.1 + Math.PI*this.angle)
-        context2D.lineTo(pos.x, pos.y)
+        var drawVector = new Vector(this.radius + 10, 0).rotate(this.angle * Math.PI)
+        context2D.moveTo(pos.x + drawVector.x, pos.y + drawVector.y)
+        drawVector = drawVector.normalized().multiply(this.radius)
+        drawVector = drawVector.rotate(Math.PI*(2/3))
+        context2D.lineTo(pos.x + drawVector.x, pos.y + drawVector.y)
+        drawVector = drawVector.rotate(Math.PI*(2/3))
+        context2D.lineTo(pos.x + drawVector.x, pos.y + drawVector.y)
+        context2D.closePath()
         context2D.fill()
+        context2D.stroke()
+
+        // Thrusters
+        if(this.leftThruster) {
+            context2D.fillStyle = this.colour
+        }
+        context2D.beginPath()
+        var thrusterCoreVector = new Vector(-28,-23).rotate(this.angle * Math.PI).add(pos)
+        var thrusterDrawVector = new Vector(-15, 0).rotate(this.angle * Math.PI)
+        context2D.moveTo(thrusterDrawVector.x + thrusterCoreVector.x, thrusterDrawVector.y + thrusterCoreVector.y)
+        thrusterDrawVector = thrusterDrawVector.rotate(Math.PI*(2/3))
+        context2D.lineTo(thrusterDrawVector.x + thrusterCoreVector.x, thrusterDrawVector.y + thrusterCoreVector.y)
+        thrusterDrawVector = thrusterDrawVector.rotate(Math.PI*(2/3))
+        context2D.lineTo(thrusterDrawVector.x + thrusterCoreVector.x, thrusterDrawVector.y + thrusterCoreVector.y)
+        context2D.closePath()
+        context2D.fill()
+        context2D.stroke()
+
+        if(this.rightThruster) {
+            context2D.fillStyle = this.colour
+        } else {
+            context2D.fillStyle = "#000000"
+        }
+        context2D.beginPath()
+        var thrusterCoreVector = new Vector(-28,23).rotate(this.angle * Math.PI).add(pos)
+        var thrusterDrawVector = new Vector(-15, 0).rotate(this.angle * Math.PI)
+        context2D.moveTo(thrusterDrawVector.x + thrusterCoreVector.x, thrusterDrawVector.y + thrusterCoreVector.y)
+        thrusterDrawVector = thrusterDrawVector.rotate(Math.PI*(2/3))
+        context2D.lineTo(thrusterDrawVector.x + thrusterCoreVector.x, thrusterDrawVector.y + thrusterCoreVector.y)
+        thrusterDrawVector = thrusterDrawVector.rotate(Math.PI*(2/3))
+        context2D.lineTo(thrusterDrawVector.x + thrusterCoreVector.x, thrusterDrawVector.y + thrusterCoreVector.y)
+        context2D.closePath()
+        context2D.fill()
+        context2D.stroke()
     }
     thrust(delta) {
         if(this.leftThruster && this.rightThruster) { // Full speed ahead
@@ -285,7 +350,7 @@ var lastTick
 
 const worldBoundary = {
     x: 40,
-    y: 80,
+    y: 150,
     w: 1000,
     h: 1000
 }
@@ -293,12 +358,20 @@ const worldBoundary = {
 const fullscreenButton = {
     x: 0,
     y: 0,
-    w: 100,
-    h: 100
+    w: 200,
+    h: 200
 }
 
 var canvas
 var context2D
+
+var imgOverlay = new Image()
+var imgRequestFullscreen = new Image()
+var imgExitFullscreen = new Image()
+var imgButtonLeftOff = new Image()
+var imgButtonLeftOn = new Image()
+var imgButtonRightOff = new Image()
+var imgButtonRightOn = new Image()
 
 var actors = []
 var player
@@ -309,6 +382,14 @@ const spawnrate = 1000
 function startup() {
     canvas = document.getElementById("asteroidsCanvas")
     context2D = canvas.getContext("2d")
+
+    imgOverlay.src = "./assets/overlay.png"
+    imgRequestFullscreen.src = "./assets/requestFullscreen.png"
+    imgExitFullscreen.src =  "./assets/exitFullscreen.png"
+    imgButtonLeftOff.src = "./assets/buttonLeftOff.png"
+    imgButtonLeftOn.src = "./assets/buttonLeftOn.png"
+    imgButtonRightOff.src = "./assets/buttonRightOff.png"
+    imgButtonRightOn.src = "./assets/buttonRightOn.png"
 
 
     document.addEventListener("keydown", function(event){
@@ -334,9 +415,6 @@ function startup() {
     canvas.addEventListener("touchcancel", touchHandler)
 
     canvas.addEventListener("click", clickHandler)
-
-    console.log(canvas.offsetWidth + ", " + canvas.offsetHeight + ": " + canvas.offsetHeight/canvas.offsetWidth)
-    
 
 
     player = new Shuttle(new Vector(360, 340))
@@ -464,7 +542,7 @@ function spawnAsteroid() {
         var speed = Math.random() * 50
         var velocity = new Vector(1,0).rotate(Math.random() * 2 * Math.PI).multiply(speed)
 
-        actors.push(new Asteroid(pos, targetRadius, velocity, "#FF4444", true))
+        actors.push(new Asteroid(pos, targetRadius, velocity, "#59faf5", true))
     }
 }
 
@@ -528,12 +606,8 @@ function physicsProcess(delta) {
 function draw(delta) {
 
     // Draw background
-    context2D.fillStyle = "#444444"
-    context2D.fillRect(0,0, canvas.width,canvas.height)
-
-    //Draw world area
     context2D.fillStyle = "#000000"
-    context2D.fillRect(worldBoundary.x,worldBoundary.y, worldBoundary.w,worldBoundary.h)
+    context2D.fillRect(0,0, canvas.width,canvas.height)
 
     // Draw actors
     var i = 0
@@ -556,4 +630,23 @@ function draw(delta) {
         i += 1
     }
 
+    // Draw UI
+    context2D.drawImage(imgOverlay, 0, 0)
+    if(fullscreen) {
+        context2D.drawImage(imgExitFullscreen, 6, 6)
+    } else {
+        context2D.drawImage(imgRequestFullscreen, 6, 6)
+    }
+
+    if(player.leftThruster) {
+        context2D.drawImage(imgButtonLeftOn, 65, 1275)
+    } else {
+        context2D.drawImage(imgButtonLeftOff, 65, 1275)
+    }
+
+    if(player.rightThruster) {
+        context2D.drawImage(imgButtonRightOn, 645, 1275)
+    } else {
+        context2D.drawImage(imgButtonRightOff, 645, 1275)
+    }
 }
